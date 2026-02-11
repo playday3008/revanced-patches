@@ -4,6 +4,8 @@ import app.revanced.com.android.tools.smali.dexlib2.mutable.MutableMethod
 import app.revanced.patcher.extensions.addInstruction
 import app.revanced.patcher.extensions.instructions
 import app.revanced.patcher.extensions.replaceInstruction
+import app.revanced.patcher.firstClassDef
+import app.revanced.patcher.firstImmutableClassDef
 import app.revanced.patcher.patch.*
 import app.revanced.patches.all.misc.packagename.changePackageNamePatch
 import app.revanced.patches.all.misc.packagename.setOrGetFallbackPackageName
@@ -208,8 +210,10 @@ fun gmsCoreSupportPatch(
         // Google Play Utility is not present in all apps, so we need to check if it's present.
         googlePlayUtilityMethod?.returnEarly(0)
 
+        val extensionClassDef = firstImmutableClassDef(EXTENSION_CLASS_DESCRIPTOR)
+
         // Set original and patched package names for extension to use.
-        originalPackageNameExtensionMethod.returnEarly(fromPackageName)
+        extensionClassDef.getOriginalPackageNameExtensionMethod().returnEarly(fromPackageName)
 
         // Verify GmsCore is installed and whitelisted for power optimizations and background usage.
         getMainActivityOnCreateMethod().addInstruction(
@@ -219,7 +223,7 @@ fun gmsCoreSupportPatch(
         )
 
         // Change the vendor of GmsCore in the extension.
-        gmsCoreSupportMethod.returnEarly(gmsCoreVendorGroupId!!)
+        extensionClassDef.getGmsCoreSupportMethod().returnEarly(gmsCoreVendorGroupId!!)
 
         executeBlock()
     }
