@@ -7,3 +7,9 @@
 -keep class com.google.** {
   *;
 }
+-keep class org.mozilla.javascript.** { *; }
+-dontwarn org.mozilla.javascript.tools.**
+-dontwarn java.beans.**
+-dontwarn jdk.dynalink.**
+-dontwarn javax.script.**
+-dontwarn com.google.re2j.**

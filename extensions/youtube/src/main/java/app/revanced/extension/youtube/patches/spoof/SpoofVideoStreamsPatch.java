@@ -9,6 +9,7 @@ import static app.revanced.extension.shared.spoof.ClientType.VISIONOS;
 
 import java.util.List;
 
+import app.revanced.extension.shared.Logger;
 import app.revanced.extension.shared.settings.Setting;
 import app.revanced.extension.shared.spoof.ClientType;
 import app.revanced.extension.youtube.settings.Settings;
@@ -52,5 +53,16 @@ public class SpoofVideoStreamsPatch {
 
         app.revanced.extension.shared.spoof.SpoofVideoStreamsPatch.setClientsToUse(
                 availableClients, client);
+
+        // Initialize NewPipe Extractor and set up the streaming data processor.
+        // This replaces URLs in the spoofed protobuf with WEB client URLs from NewPipe.
+        try {
+            NewPipeStreamFetcher.initialize();
+            app.revanced.extension.shared.spoof.SpoofVideoStreamsPatch.setStreamingDataProcessor(
+                    NewPipeStreamProcessor.getInstance());
+            Logger.printInfo(() -> "NewPipe stream processor registered");
+        } catch (Exception ex) {
+            Logger.printException(() -> "Failed to initialize NewPipe stream processor", ex);
+        }
     }
 }

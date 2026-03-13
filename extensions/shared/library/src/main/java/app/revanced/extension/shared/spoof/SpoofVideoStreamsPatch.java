@@ -37,6 +37,9 @@ public class SpoofVideoStreamsPatch {
     private static final boolean SPOOF_STREAMING_DATA = BaseSettings.SPOOF_VIDEO_STREAMS.get();
 
     @Nullable
+    private static volatile StreamingDataProcessor streamingDataProcessor;
+
+    @Nullable
     private static volatile AppLanguage languageOverride;
 
     private static volatile ClientType preferredClient = ClientType.ANDROID_VR_1_43_32;
@@ -63,6 +66,14 @@ public class SpoofVideoStreamsPatch {
     public static void setClientsToUse(List<ClientType> availableClients, ClientType client) {
         preferredClient = Objects.requireNonNull(client);
         StreamingDataRequest.setClientOrderToUse(availableClients, client);
+    }
+
+    /**
+     * Sets a processor that can modify streaming data after it's fetched.
+     * Used by the YouTube extension to replace URLs with NewPipe Extractor URLs.
+     */
+    public static void setStreamingDataProcessor(@Nullable StreamingDataProcessor processor) {
+        streamingDataProcessor = processor;
     }
 
     public static ClientType getPreferredClient() {
@@ -238,6 +249,19 @@ public class SpoofVideoStreamsPatch {
                 }
 
                 StreamingDataRequest.fetchRequest(id, requestHeaders);
+
+                // Notify processor to start fetching replacement streams in parallel.
+                StreamingDataProcessor processor = streamingDataProcessor;
+                if (processor != null) {
+                    final String videoId = id;
+                    Utils.runOnBackgroundThread(() -> {
+                        try {
+                            processor.onStreamingDataRequested(videoId);
+                        } catch (Exception ex) {
+                            Logger.printException(() -> "StreamingDataProcessor.onStreamingDataRequested failure", ex);
+                        }
+                    });
+                }
             } catch (Exception ex) {
                 Logger.printException(() -> "buildRequest failure", ex);
             }
@@ -266,6 +290,16 @@ public class SpoofVideoStreamsPatch {
 
                     var stream = request.getStream();
                     if (stream != null) {
+                        // Apply URL replacement if a processor is configured.
+                        StreamingDataProcessor processor = streamingDataProcessor;
+                        if (processor != null) {
+                            try {
+                                stream = processor.processStreamingData(videoId, stream);
+                            } catch (Exception ex) {
+                                Logger.printException(() -> "StreamingDataProcessor.processStreamingData failure", ex);
+                            }
+                        }
+
                         Logger.printDebug(() -> "Overriding video stream: " + videoId);
                         return stream;
                     }
