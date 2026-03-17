@@ -106,14 +106,21 @@ public final class ExtractorDownloader extends Downloader {
         return responseCode >= 400;
     }
 
-    private static String readStream(InputStream inputStream) throws IOException {
+    /**
+     * Reads an InputStream into a byte array.
+     */
+    static byte[] readStreamBytes(InputStream inputStream) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 baos.write(buffer, 0, bytesRead);
             }
-            return baos.toString("UTF-8");
+            return baos.toByteArray();
         }
+    }
+
+    private static String readStream(InputStream inputStream) throws IOException {
+        return new String(readStreamBytes(inputStream), "UTF-8");
     }
 }
